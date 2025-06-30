@@ -14,7 +14,6 @@ from events import PostgresDataStore, NonExistantIdError
 app = Flask(__name__, static_url_path='/static/')
 app.json_encoder = ScheldulerJSONEncoder
 
-
 ## read config file
 config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.json')
 with open(config_path) as f:
@@ -23,20 +22,16 @@ with open(config_path) as f:
 ## initialize DB connectivity
 db = PostgresDataStore(config['db_connect'])
 
-
-
 ## hack for development purposes: serve static content via Flask
 @app.route('/', methods=['GET'])
 def root():
     print('index.html requested')
     return send_file('static/index.html')
 
-## hack for development purposes: serve static content via Flask
 @app.route('/js/<path:path>', methods=['GET'])
 def send_js(path):
-    print('%s requested'%path)
+    print('%s requested' % path)
     return send_from_directory('static', path)
-
 
 @app.route('/coaches/', methods=['GET'])
 def api_coaches():
@@ -47,7 +42,6 @@ def api_coaches():
     print(coaches)
     return jsonify(coaches)
 
-
 @app.route('/participants/<int:event_id>/', methods=['GET'])
 def api_participants(event_id):
     """
@@ -55,15 +49,13 @@ def api_participants(event_id):
     """
     return jsonify(db.get_participants(event_id))
 
-
 @app.route('/calendar/<int:person_id>/<int:coach_id>/', methods=['GET'])
 def api_schedule_with_coach(person_id, coach_id):
     """
     Client's view of a coach's schedule for browsing available appointments
     """
-    s,e = week_window_to_show(request.args)
+    s, e = week_window_to_show(request.args)
     return jsonify(db.get_calendar(person_id, coach_id, s, e))
-
 
 @app.route('/event/', methods=['POST', 'PUT', 'DELETE'])
 @app.route('/event/<int:event_id>/', methods=['GET', 'DELETE'])
@@ -73,36 +65,37 @@ def api_event(event_id=None):
     Post=book a new event, Put=update an existing event
     Delete can have a JSON body or just refer to an event by its ID in the URL
     """
-    if request.method=='POST':
+    if request.method == 'POST':
         ap_request = request.get_json()
         ap = db.create_event(**ap_request)
         return jsonify(ap)
-    elif request.method=='GET':
+    elif request.method == 'GET':
         return jsonify(db.get_event(event_id))
-    elif request.method=='PUT':
+    elif request.method == 'PUT':
         ap_request = request.get_json()
         ap = db.update_event(**ap_request)
         return jsonify(ap)
-    elif request.method=='DELETE':
+    elif request.method == 'DELETE':
         if not event_id:
             ap_request = request.get_json()
             event_id = ap_request['id']
         return jsonify(db.delete_event(event_id))
     else:
-        raise ValueError('Unsupported method '+request.method)
-
+        raise ValueError('Unsupported method ' + request.method)
 
 @app.errorhandler(NonExistantIdError)
 def handle_bad_request(ex):
     """
     Example of returning a proper HTTP error code and JSON error message
     """
-    response = jsonify({'error-message':str(ex)})
+    response = jsonify({'error-message': str(ex)})
     response.status_code = 404
     return response
 
-
+# 🔧 Tambahan kecil untuk keperluan Pull Request UAS
+@app.route('/ping', methods=['GET'])
+def ping():
+    return jsonify({'message': 'pong'}), 200
 
 if __name__ == "__main__":
     app.run(debug=True, use_debugger=True, use_reloader=True)
-
